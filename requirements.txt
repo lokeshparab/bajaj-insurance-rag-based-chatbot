@@ -3,3 +3,9 @@ numpy
 requests
 lxml
 bs4
+langchain 
+langchain-core 
+langchain-community 
+langchain-astradb
+langgraph
+pymupdf
