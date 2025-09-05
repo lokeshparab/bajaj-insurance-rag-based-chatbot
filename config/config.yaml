@@ -1,0 +1,18 @@
+dataset: "data/bajaj_insurance_documents_statewise.json"
+
+
+llm:
+  - meta-llama/llama-guard-4-12b: 7500
+  - llama-3.3-70b-versatile: 6000
+  - openai/gpt-oss-120b: 4000
+  - openai/gpt-oss-20b: 4000
+  - llama-3.1-8b-instant: 3000
+
+astradb:
+  collection_name: "bajaj_insurance"
+  embedding_model: "jina-embeddings-v2-base-en"
+  top_k: 5
+
+model:
+  path: "artifact/model/model.pkl"
+  report_path : "artifact/model/report.csv"

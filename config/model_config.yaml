@@ -1,0 +1,64 @@
+LinearRegression:
+  model:
+    _target_: sklearn.linear_model.LinearRegression
+  params:
+    fit_intercept: [True]
+
+DescisionTreeRegressor:
+  model:
+    _target_: sklearn.tree.DecisionTreeRegressor
+  params:
+    criterion: ['squared_error', 'friedman_mse', 'absolute_error', 'poisson']
+    max_depth: [4, 5, 6]
+    min_samples_leaf: [1,2,3]
+    max_features: ['sqrt', 'log2']
+
+
+RandomForestRegressor:
+  model:
+    _target_: sklearn.ensemble.RandomForestRegressor
+  params:
+    criterion: ['squared_error', 'friedman_mse', 'absolute_error', 'poisson']
+    max_depth: [4, 5, 6]
+    min_samples_leaf: [1,2,3]
+    n_estimators: [32, 64, 128]
+
+GradientBoostingRegressor:
+  model:
+    _target_: sklearn.ensemble.GradientBoostingRegressor
+  params:
+    loss: ['squared_error', 'huber', 'absolute_error', 'quantile']
+    max_depth: [4, 5, 6]
+    min_samples_leaf: [1,2,3]
+    max_features: ['sqrt', 'log2']
+
+AdaBoostRegressor:
+  model:
+    _target_: sklearn.ensemble.AdaBoostRegressor
+  params:
+    loss: ['linear', 'square', 'exponential']
+    learning_rate: [0.1, 0.5, 0.01, 0.05, 0.001]
+    n_estimators: [32, 64, 128]
+
+Lasso:
+  model:
+    _target_: sklearn.linear_model.Lasso
+  params:
+    alpha: [0.01, 0.1, 1, 10]
+    selection: ['cyclic', 'random']
+
+Ridge:
+  model:
+    _target_: sklearn.linear_model.Ridge
+  params:
+    alpha: [0.01, 0.1, 1]
+    solver: ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga', 'lbfgs']
+
+ElasticNet:
+  model:
+    _target_: sklearn.linear_model.ElasticNet
+  params:
+    alpha: [0.01, 0.1, 1]
+    l1_ratio: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    selection: ['cyclic', 'random']
+
