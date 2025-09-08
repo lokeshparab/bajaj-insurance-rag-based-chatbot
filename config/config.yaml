@@ -9,7 +9,7 @@ llm:
   - llama-3.1-8b-instant: 3000
 
 astradb:
-  collection_name: "bajaj_insurance"
+  collection_name: "bajaj_insurance_docs"
   embedding_model: "jina-embeddings-v2-base-en"
   top_k: 5
 

@@ -6,9 +6,9 @@ SYS_REASONER_PROMPT = (
     "Use the following pieces of retrieved context which has plans and details of insurance to answer the question. "
     "If you don't know the answer, just say that you don't know. "
     "Use three sentences maximum and keep the answer concise.\n"
-    "Question: {question}\n"
-    "Context: {context}\n"
-    "Answer: "
+    # "Question: {query}\n"
+    # "Context: {context}\n"
+    # "Answer: "
 )
 
 def create_chat_prompt(
