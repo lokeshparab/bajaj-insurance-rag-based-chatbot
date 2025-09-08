@@ -4,7 +4,7 @@ from langchain_astradb import AstraDBVectorStore
 from langchain_community.embeddings import JinaEmbeddings
 import os
 
-config = load_config('config.yaml')
+config = load_config('config/config.yaml')
 
 load_dotenv()
 
