@@ -10,9 +10,18 @@ from typing import TypedDict,Annotated
 from operator import add
 
 from src.utils import result_template
-from src.agent_component import TOOL_MODELS, LLM_MODELS, TOP_K
+from src.agent_component import LLM_MODELS, TOP_K #,TOOL_MODELS
 from src.agent_component.tools import retriever
 from src.rag_component.astradb import AstraDB
+
+from logger.custom_logger import CustomLogger
+from exception.custom_exception import CustomException
+
+import sys
+
+print(__file__)
+logging = CustomLogger().get_logger(__file__)
+
 class AgentState(TypedDict):
     query: str
     # chat_history: list[BaseMessage]
@@ -35,14 +44,10 @@ class Agents:
             model_name (str): Name of the model to load (e.g., "mixtral-8x7b-32768").
             system_prompt (str): Instruction message to guide the assistant’s behavior.
         """
-
         # self.tool_models = tool_models
+        logging.info("Initializing Agents with LLM models: %s", llm_models)
         self.llm_models = llm_models
-
-
-
         self.parser = StrOutputParser()
-
 
 
     def get_llm(self, model_name:str, temperature:float=0.2, max_tokens:int=-1):
@@ -55,11 +60,15 @@ class Agents:
             temperature (float): The temperature to use for the model.
             max_tokens (int): Maximum number of tokens to generate. If -1, no limit is applied.
         """
+
         if max_tokens == -1:
+            logging.info(f"Loading model: {model_name.capitalize()} with temperature: {temperature} and no max_tokens limit")
             return init_chat_model(model=f"groq:{model_name}", temperature=temperature, max_retries=3)
         
+        logging.info(f"Loading model: {model_name.capitalize()} with temperature: {temperature} and max_tokens: {max_tokens}")
         return init_chat_model(model=f"groq:{model_name}", temperature=temperature, max_tokens=max_tokens, max_retries=3)
     
+
     def response_llm_manager(
             self,query:dict,models:list[str] | list[dict[str,str]],
             previous_chain:Runnable = RunnablePassthrough(), next_chain:Runnable  = RunnablePassthrough(), 
@@ -83,7 +92,8 @@ class Agents:
             BaseMessage: The response from the model.
         """
         for model in models:
-            print(f"Invoking LLM with model: {model}, temperature: {temperature}, max_tokens: {max_tokens}")
+            logging.info(f"Invoking LLM with model: {model}, temperature: {temperature}, max_tokens: {max_tokens}")
+            # print(f"Invoking LLM with model: {model}, temperature: {temperature}, max_tokens: {max_tokens}")
             try:
                 llm = (
                     self.get_llm(list(model.keys())[0], temperature=temperature, max_tokens=list(model.values())[0])
@@ -101,29 +111,43 @@ class Agents:
                         "configurable": { **config ,"max_retries": 3 }        
                     }
                 )
+                logging.info(f"LLM invocation successful with model: {model} with response length: {len(response.content) if isinstance(response, BaseMessage) else len(response)}")
                 return response
             
             except Exception as e:
-                print(f"Failed to invoke LLM with model {model}")
-                print(f"Error: {e}")
-                continue
+                app_exc = CustomException(e, sys)
+                logging.error(f"Failed to invoke LLM with model {model}")
+                logging.error(app_exc)
 
-        print("All models failed, returning None.")
+        logging.error("All models failed, returning None.")
         return AIMessage(content="Unable to generate response for this following query")
     
     def rag_retriever(self,state: AgentState) -> AgentState:
-        vector_db = AstraDB()
-        docs = vector_db.rag_retrieve(state["query"], k=TOP_K)
 
-        formatted_docs = "/n/n".join(
-            f"**Metadata**: {doc.metadata}\n**Content**: {doc.page_content}"
-            for doc in docs
-        )
+        try:
+            logging.info("Invoking RAG Retriever for query: %s", state["query"])
+            vector_db = AstraDB()
+            docs = vector_db.rag_retrieve(state["query"], k=TOP_K)
 
-        return AgentState(
-            context=formatted_docs,
-            query=state["query"],
-        )
+            formatted_docs = "/n/n".join(
+                f"**Metadata**: {doc.metadata}\n**Content**: {doc.page_content}"
+                for doc in docs
+            )
+
+            logging.info("RAG Retriever found %d documents for query: %s", len(docs), state["query"])
+
+            return AgentState(
+                context=formatted_docs,
+                query=state["query"],
+            )
+        except Exception as e:
+            app_exc = CustomException(e, sys)
+            logging.error("Error in RAG Retriever")
+            logging.error(app_exc)
+            return AgentState(
+                context="",
+                query=state["query"],
+            )
 
     def insurance_agent(self, state: AgentState)-> AgentState:
         """
@@ -137,32 +161,45 @@ class Agents:
             dict: A dictionary containing the messages, tool calls and agent message.
         """
 
-        if state['context']:
+        try:
 
-            answer = self.response_llm_manager(
-                query={"query": state["query"], "context": state["context"]},
-                models=self.llm_models,
-                previous_chain=REASONER_AGENT,
-                next_chain=self.parser,
-                temperature=0.1,
+            if state['context']:
+                logging.info("Insurance agent got context with length %d for query: %s", len(state['context']), state["query"])
+                answer = self.response_llm_manager(
+                    query={"query": state["query"], "context": state["context"]},
+                    models=self.llm_models,
+                    previous_chain=REASONER_AGENT,
+                    next_chain=self.parser,
+                    temperature=0.1,
+                )
+
+
+            else:
+                print("issues")
+                logging.info("Insurance agent got no context for query: %s", state["query"])
+                answer = self.response_llm_manager(
+                    query=[SystemMessage(content=f"Close the final answer for query: {state['query']} ")] + state["messages"],
+                    models=self.llm_models,
+                    temperature=0, 
+                    max_tokens=500,
+                )
+
+            logging.info("Insurance agent generated answer with length %d for query: %s", len(answer.content) if isinstance(answer, BaseMessage) else len(answer), state["query"])
+            return AgentState(
+                query=state["query"],
+                context=state["context"],
+                answer=answer
+                # messages=state["messages"] + [response],
+                # tool_calls=state["tool_calls"]
             )
-
-
-        else:
-            print("issues")
-            answer = self.response_llm_manager(
-                query=[SystemMessage(content=f"Close the final answer for query: {state['query']} ")] + state["messages"],
-                models=self.llm_models,
-                temperature=0, 
-                max_tokens=500,
+        except Exception as e:
+            app_exc = CustomException(e, sys)
+            logging.error("Error in Insurance Agent")
+            logging.error(app_exc)
+            return AgentState(
+                query=state["query"],
+                context=state["context"],
+                answer="",
+                # messages=state["messages"] + [AIMessage(content="Unable to generate response for this following query")],
+                # tool_calls=state["tool_calls"]
             )
-
-        
-            
-        return AgentState(
-            query=state["query"],
-            context=state["context"],
-            answer=answer
-            # messages=state["messages"] + [response],
-            # tool_calls=state["tool_calls"]
-        )
