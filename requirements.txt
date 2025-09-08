@@ -7,5 +7,8 @@ langchain
 langchain-core 
 langchain-community 
 langchain-astradb
+langchain-groq
 langgraph
 pymupdf
+streamlit
+streamlit-pills
