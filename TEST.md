@@ -79,7 +79,27 @@ Before you begin, ensure you have the following installed:
    - Open your browser and navigate to `http://localhost:8000`
    - Or use the API endpoints directly
 
+### API Endpoints
 
+- `POST /chat` - Send a query to the chatbot
+- `GET /health` - Check application health
+- `POST /feedback` - Submit user feedback
+
+### Example API Usage
+
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/chat",
+    json={
+        "message": "What is the claim process for my health insurance policy?",
+        "session_id": "unique_session_id"
+    }
+)
+
+print(response.json())
+```
 
 ## 📊 Project Structure
 
@@ -166,11 +186,19 @@ Run the test suite to ensure everything is working correctly:
 # Run all tests
 python -m pytest tests/
 
-# Run specific test file
-python -m pytest tests/test_chatbot.py
+# Run specific test files
+python -m pytest tests/test_api.py          # Test API endpoints
+python -m pytest tests/test_rag.py          # Test RAG components  
+python -m pytest tests/test_agent.py        # Test agent functionality
 
 # Run with coverage
 python -m pytest tests/ --cov=src/
+```
+
+### Evaluate RAG Performance
+
+```bash
+python -m src.rag_component.evaluation
 ```
 
 ## 🚀 Deployment
